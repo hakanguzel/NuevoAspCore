@@ -1,0 +1,246 @@
+﻿@model NuevoAspCore.Models.DbModels.WebSites
+
+@{
+    ViewData["Title"] = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<div class="container" id="app">
+    <div class="row">
+        <div class="col-md-12 my-2">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="form-group">
+                        <div class="input-group flex-nowrap">
+                            <input type="text" class="form-control" v-model="search" placeholder="Search title.." aria-label="Search" aria-describedby="addon-wrapping">
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <button type="button" class="btn btn-primary" v-on:click="formClear" data-toggle="modal" data-target="#exampleModal">
+                            <i class="fas fa-plus"></i> Ekle
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <a asp-controller="Users" asp-action="LogOut" type="button" class="btn btn-primary">
+                            <i class="fas fa-sign-out-alt"></i> Çıkış
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-12">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="row">
+
+                        <table class="table table-hover">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th scope="col">Site Name</th>
+                                    <th scope="col">Last Control Time</th>
+                                    <th scope="col">Last Status</th>
+                                    <th scope="col">#</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="WebSite in filteredList">
+                                    <td><a :href="'/WebSites/Details/' + WebSite.webSitesId"> {{ WebSite.siteName }} </a></td>
+                                    <td>{{ WebSite.lastSuccessCheck }}</td>
+                                    <td>
+
+
+                                        <div v-if="WebSite.errorStatus == 2">
+                                            <span class="badge badge-success">Success</span>
+                                        </div>
+                                        <div v-else>
+                                            <a href="#" class="badge badge-danger">Error</a>
+                                        </div>
+                                    </td>
+                                    <th>
+                                        <button data-toggle="modal" data-target="#exampleModal" class="btn btn-primary" v-on:click="editItem(WebSite.webSitesId)"> Düzenle <i class="far fa-edit"></i></button>
+                                        <button class="btn btn-danger" v-on:click="deleteItem(WebSite.webSitesId)"> Sil <i class="far fa-trash-alt"></i></button>
+                                    </th>
+                                </tr>
+                            </tbody>
+                        </table>
+
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+
+
+
+
+    <!-- Modal -->
+    <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel"> {{ postSite.siteName }} </h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label class="control-label">Site Name</label>
+                            <input v-model="postSite.siteName" class="form-control" />
+                            <span class="text-danger"></span>
+                        </div>
+                        <div class="form-group">
+                            <label class="control-label">Site Url</label>
+                            <input v-model="postSite.siteUrl" class="form-control" pattern="https://.*" />
+                            <span class="text-danger"></span>
+                        </div>
+                        <div class="form-group">
+                            <label for="formControlRange">Site Check Delay ( {{ postSite.sitesCheckDelay /  1000 }} s )</label>
+                            <input type="range" class="form-control-range" v-model="postSite.sitesCheckDelay" step="100000" min="100000" max="21474000">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-success" href="#" v-on:click="formSubmit" data-dismiss="modal">Save</button>
+                        <button type="button" class="btn btn-secondary" v-on:click="formClear" data-dismiss="modal">Kapat</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>
+<script src="~/js/vue.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.2/axios.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@9"></script>
+
+
+
+
+<script>
+
+
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                search: '',
+                WebSites: [],
+                postSite: {
+                    userId: 0,
+                    sitesCheckDelay: 100000
+                },
+                editId: null
+            }
+        },
+        methods: {
+            servisistegi() {
+                axios
+                    .get('http://localhost:51728/api/WebSitesApi')
+                    .then(response => (this.WebSites = response.data))
+            },
+            pollData() {
+                this.polling = setInterval(() => {
+                    this.servisistegi()
+                }, 100000)
+            },
+            formSubmit: function (e) {
+                e.preventDefault();
+                this.postSite.sitesCheckDelay = parseFloat(this.postSite.sitesCheckDelay);
+                this.postSite.lastSuccessCheckDate = null;
+                this.postSite.usersNavigation = null;
+                this.postSite.webSiteError = null;
+
+
+                if (this.postSite.webSitesId == undefined) {
+                    axios.post('http://localhost:51728/api/WebSitesApi', this.postSite)
+                        .then(function (response) {
+                        })
+                        .catch(function (error) {
+                        });
+                } else {
+                    axios.put('http://localhost:51728/api/WebSitesApi/' + this.postSite.webSitesId, this.postSite)
+                        .then(function (response) {
+                        })
+                        .catch(function (error) {
+                        });
+                }
+
+                this.postSite = null;
+
+                this.postSite = {
+                    userId: 0,
+                    sitesCheckDelay: 100000
+                }
+                this.servisistegi();
+
+
+                Swal.fire({
+                    position: 'top-end',
+                    icon: 'success',
+                    title: 'Your work has been saved',
+                    showConfirmButton: false,
+                    timer: 1500
+                })
+
+            },
+            editItem(selectId) {
+                console.log(selectId);
+                axios
+                    .get('http://localhost:51728/api/WebSitesApi/' + selectId)
+                    .then(response => (this.postSite = response.data));
+
+            },
+            formClear() {
+                this.postSite = null;
+
+                this.postSite = {
+                    userId: 0,
+                    sitesCheckDelay: 100000
+                }
+            },
+            deleteItem(selectId) {
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: "You won't be able to revert this!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Yes, delete it!'
+                }).then((result) => {
+                    if (result.value) {
+                        axios.delete('http://localhost:51728/api/WebSitesApi/' + selectId).then();
+                        this.servisistegi();
+
+                       
+                        Swal.fire(
+                            'Deleted!',
+                            'Your info has been deleted.',
+                            'success'
+                        )
+                    }
+                })
+            }
+        }
+        ,
+        mounted() {
+            this.servisistegi()
+            this.pollData()
+        },
+        computed: {
+            filteredList() {
+                return this.WebSites.filter(web => {
+                    return web.siteName.toLowerCase().includes(this.search.toLowerCase())
+                })
+            }
+        }
+    })
+</script>

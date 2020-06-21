@@ -1,0 +1,97 @@
+﻿@model NuevoAspCore.Models.DbModels.WebSites
+
+@{
+    ViewData["Title"] = "Details";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+    <a href="/"><i class="fas fa-arrow-circle-left"></i> Back </a>
+
+<div class="container" id="app">
+    <h4>WebSite Details</h4>
+    <hr />
+    <dl class="row">
+        <div class="col-sm-2">
+            Web Site Name :
+            {{ WebSite.siteName }}
+        </div>
+        <div class="col-sm-2">
+            Last Control Time
+            {{ WebSite.lastSuccessCheckDate }}
+        </div>
+        <div class="col-sm-2">
+            Last Status
+            <div v-if="WebSite.errorStatus == 2">
+                <span class="badge badge-success">Success</span>
+            </div>
+            <div v-else>
+                <a href="#" class="badge badge-danger">Error</a>
+            </div>
+        </div>
+    </dl>
+    <h4>Errors Received</h4>
+    <table class="table table-hover">
+        <thead class="thead-dark">
+        <tr>
+            <th scope="col">Control Time</th>
+            <th scope="col">Site Status</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr v-for="item in WebSite.webSiteError">
+            <td>{{ item.errorTime }}</td>
+            <td>
+                <div v-if="item.errorTime == 2">
+                    <span class="badge badge-success">Success</span>
+                </div>
+                <div v-else>
+                    <a href="#" class="badge badge-danger">Error</a>
+                </div>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<script src="~/js/vue.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.2/axios.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@9"></script>
+
+
+
+
+<script>
+
+
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                search: '',
+                WebSite: [],
+                postSite: {
+                    userId: 0,
+                    sitesCheckDelay: 100000
+                },
+                editId: null
+            }
+        },
+        methods: {
+            servisistegi() {
+                axios
+                    .get('http://localhost:51728/api/WebSitesApi/' + @Model.WebSitesId)
+                    .then(response => (this.WebSite = response.data))
+            },
+            pollData() {
+                this.polling = setInterval(() => {
+                    this.servisistegi()
+                }, 100000)
+            }
+        }
+        ,
+        mounted() {
+            this.servisistegi()
+            this.pollData()
+        }
+    })
+</script>
